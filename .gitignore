@@ -1,0 +1,100 @@
+# =========================
+# Search Engine Project
+# =========================
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log
+yarn.lock
+
+# Build output
+build/
+dist/
+.next/
+out/
+
+# =========================
+# Frontend
+# =========================
+.cache/
+.parcel-cache/
+
+# =========================
+# Databases
+# =========================
+*.sqlite
+*.sqlite3
+*.db
+
+# Elasticsearch / search indexes
+data/
+index/
+indexes/
+storage/
+
+# =========================
+# IDEs
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+*.bak
+
+# =========================
+# Coverage / Testing
+# =========================
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
+# =========================
+# Model / ML files (if used)
+# =========================
+*.pkl
+*.pickle
+*.h5
+*.model
+models/
+
+# =========================
+# Uploaded files
+# =========================
+uploads/
+media/
+
+# =========================
+# Secrets
+# =========================
+*.pem
+*.key
+secrets/
+credentials/

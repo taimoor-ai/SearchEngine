@@ -1,0 +1,25 @@
+{
+  "name": "searchengine",
+  "version": "1.0.0",
+  "description": "A custom search engine project that crawls, indexes, and retrieves relevant results efficiently using modern search algorithms.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taimoor-ai/SearchEngine.git"
+  },
+  "author": "M Taimoor Arshad",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/taimoor-ai/SearchEngine/issues"
+  },
+  "homepage": "https://github.com/taimoor-ai/SearchEngine#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "morgan": "^1.11.0"
+  }
+}

@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/taimoor-ai/SearchEngine#readme",
   "dependencies": {
+    "axios": "^1.18.1",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

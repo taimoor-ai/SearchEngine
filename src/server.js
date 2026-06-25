@@ -4,9 +4,12 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 
 const searchRoutes = require("./routes/searchRoutes");
-
+const connectDb= require("./database/db")
 const app = express();
+const dotenv = require("dotenv");
 
+// Load environment variables from .env file
+dotenv.config();
 
 // ======================
 // Middlewares
@@ -21,7 +24,8 @@ app.use(cors());
 // Parse JSON requests
 app.use(express.json());
 
-
+// Connect to MongoDB
+connectDb(); 
 // Logger
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));

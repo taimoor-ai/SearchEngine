@@ -1,7 +1,7 @@
 // crawler.js
 
-const axios = require("axios");
-const cheerio = require("cheerio");
+import axios from "axios";
+import * as cheerio from "cheerio";
 
 class Crawler {
   constructor() {
@@ -52,8 +52,8 @@ class Crawler {
         const absoluteUrl = new URL(href, baseUrl).href;
 
         links.add(absoluteUrl);
-      } catch (err) {
-        // ignore invalid urls
+      } catch {
+        // Ignore invalid URLs
       }
     });
 
@@ -82,6 +82,7 @@ class Crawler {
     if (!response) return null;
 
     const { html, statusCode, responseTime } = response;
+
     const $ = cheerio.load(html);
 
     $("script").remove();
@@ -91,10 +92,11 @@ class Crawler {
 
     const title = this.cleanText($("title").first().text());
 
-    const description = $('meta[name="description"]').attr("content") || "";
+    const description =
+      $('meta[name="description"]').attr("content") || "";
 
     const content = this.cleanText(
-      $("main").length ? $("main").text() : $("body").text(),
+      $("main").length ? $("main").text() : $("body").text()
     );
 
     const headings = this.extractHeadings($);
@@ -103,41 +105,15 @@ class Crawler {
 
     return {
       url,
-
       title,
-
       description,
-
       headings,
-
       content,
-
       links,
-
       statusCode,
-
       responseTime,
     };
   }
 }
-module.exports = Crawler;
-// const connectToDatabase = require("../database/db");
-// const dotenv = require("dotenv");
-// dotenv.config();
-// connectToDatabase();
-// const pageService = require("./page.service");
-// (async () => {
-//   const crawler = new Crawler();
 
-//   const page = await crawler.crawl("https://react.dev");
-
-//   if (!page) {
-//     return;
-//   }
-
-//   const savedPage = await pageService.save(page);
-
-//   console.log(savedPage._id);
-
-//  console.log("Crawled and saved page:", page);
-// })();
+export default Crawler;

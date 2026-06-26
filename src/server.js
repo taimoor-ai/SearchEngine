@@ -1,40 +1,32 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
+// server.js
 
-const searchRoutes = require("./routes/searchRoutes");
-const connectDb= require("./database/db")
-const app = express();
-const dotenv = require("dotenv");
-const crawlManager = require("./crawler/crawlerManager");
-// Load environment variables from .env file
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import dotenv from "dotenv";
+
+import connectDb from "./database/db.js";
+import searchRoutes from "./routes/searchRoutes.js";
+import crawlManager from "./crawler/crawlerManager.js";
+import urlQueueService from "./crawler/urlQueue.service.js";
+
+// Load environment variables
 dotenv.config();
+
+const app = express();
 
 // ======================
 // Middlewares
 // ======================
 
-// Security headers
 app.use(helmet());
-
-// Allow frontend access
 app.use(cors());
-
-// Parse JSON requests
 app.use(express.json());
 
-// Connect to MongoDB
-connectDb(); 
-
-//start crawler
-crawlManager.start();
-
-// Logger
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
-
 
 // ======================
 // Routes
@@ -43,13 +35,11 @@ if (process.env.NODE_ENV !== "production") {
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Mini Search Engine API Running ",
+    message: "Mini Search Engine API Running",
   });
 });
 
-
 app.use("/api", searchRoutes);
-
 
 // ======================
 // 404 Handler
@@ -61,14 +51,13 @@ app.use((req, res) => {
     message: "Route not found",
   });
 });
-   
 
 // ======================
 // Global Error Handler
 // ======================
 
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err.message);
+  console.error("Server Error:", err);
 
   res.status(500).json({
     success: false,
@@ -76,26 +65,49 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 // ======================
-// Server
+// Start Server
 // ======================
 
 const PORT = process.env.PORT || 3000;
 
+const startServer = async () => {
+  try {
+    // Connect Database
+    await connectDb();
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    // Seed URL Queue
+    await urlQueueService.add("https://react.dev");
 
+    // Start crawler (optional)
+    // await crawlManager.start();
 
-// Graceful Shutdown
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
 
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down...");
+    // Graceful Shutdown
+    process.on("SIGTERM", () => {
+      console.log("SIGTERM received. Shutting down...");
 
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
-});
+      server.close(() => {
+        console.log("Server closed");
+        process.exit(0);
+      });
+    });
+
+    process.on("SIGINT", () => {
+      console.log("SIGINT received. Shutting down...");
+
+      server.close(() => {
+        console.log("Server closed");
+        process.exit(0);
+      });
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

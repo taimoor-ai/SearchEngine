@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const searchDocuments = require("../controllers/searchControllers");
+import { searchDocuments } from "../controllers/searchControllers.js";
 
 // Optional middleware example
 const validateSearchQuery = (req, res, next) => {
@@ -30,4 +30,4 @@ router.get(
 );
 
 
-module.exports = router;
+export default router;

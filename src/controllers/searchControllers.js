@@ -1,6 +1,8 @@
-const documents = require("../data/documents");
+// controllers/search.controller.js
 
-const searchDocuments = async (req, res) => {
+import documents from "../data/documents.js";
+
+export const searchDocuments = async (req, res) => {
   try {
     const query = String(req.query.q || "").trim();
 
@@ -20,19 +22,18 @@ const searchDocuments = async (req, res) => {
 
     const searchQuery = query.toLowerCase();
 
-     const results = documents.filter((doc) => {
-    return (
-      doc.title.toLowerCase().includes(query) ||
-      doc.content.toLowerCase().includes(query)
-    );
-  });
+    const results = documents.filter((doc) => {
+      return (
+        doc.title.toLowerCase().includes(searchQuery) ||
+        doc.content.toLowerCase().includes(searchQuery)
+      );
+    });
 
     return res.status(200).json({
       success: true,
       count: results.length,
       data: results,
     });
-
   } catch (error) {
     console.error("Search Error:", error.message);
 
@@ -43,4 +44,3 @@ const searchDocuments = async (req, res) => {
   }
 };
 
-module.exports = searchDocuments;

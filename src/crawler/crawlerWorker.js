@@ -3,7 +3,7 @@
 import Crawler from "./crawler.js";
 import pageService from "../services/page.service.js";
 import urlQueueService from "../services/urlQueue.service.js";
-
+import robotsService from "../services/robots.service.js ";
 class CrawlerWorker {
   constructor(options = {}) {
     this.crawler = new Crawler();
@@ -27,9 +27,7 @@ class CrawlerWorker {
   }
 
   log(message) {
-    console.log(
-      `[${new Date().toISOString()}] ${message}`
-    );
+    console.log(`[${new Date().toISOString()}] ${message}`);
   }
 
   async processNextUrl() {
@@ -39,6 +37,29 @@ class CrawlerWorker {
       this.log("Queue is empty.");
 
       return false;
+    }
+
+    const allowed = await robotsService.isAllowed(job.url);
+
+    if (!allowed) {
+      this.log(`[Robots] Blocked: ${job.url}`);
+
+      await urlQueueService.markCompleted(job._id);
+      this.stats.processed++;
+      this.stats.success++;
+
+      this.log(`Completed ${job.url}`);
+      return true;
+    }
+    // Get crawl delay
+    const crawlDelay = await robotsService.getCrawlDelay(job.url);
+
+    if (crawlDelay > 0) {
+      this.log(
+        `[Robots] Waiting ${crawlDelay} second(s) before crawling ${job.url}`,
+      );
+
+      await this.sleep(crawlDelay * 1000);
     }
 
     this.log(`Processing ${job.url}`);
@@ -52,16 +73,11 @@ class CrawlerWorker {
 
       await pageService.save(page);
 
+      this.log(`[MongoDB] Saved ${job.url}`);
       if (job.depth < this.maxDepth) {
-        await urlQueueService.addMany(
-          page.links,
-          page.url,
-          job.depth + 1
-        );
+        await urlQueueService.addMany(page.links, page.url, job.depth + 1);
 
-        this.log(
-          `${page.links.length} URLs discovered.`
-        );
+        this.log(`[Queue] Added ${page.links.length} new URLs`);
       }
 
       await urlQueueService.markCompleted(job._id);
@@ -76,12 +92,9 @@ class CrawlerWorker {
       this.stats.processed++;
       this.stats.failed++;
 
-      this.log(`Failed ${job.url}`);
+      this.log(`[Error] ${job.url}\n${error.message}`);
 
-      await urlQueueService.markFailed(
-        job._id,
-        error.message
-      );
+      await urlQueueService.markFailed(job._id, error.message);
 
       return false;
     }
@@ -104,8 +117,7 @@ class CrawlerWorker {
 
     while (this.running) {
       try {
-        const processed =
-          await this.processNextUrl();
+        const processed = await this.processNextUrl();
 
         if (!processed) {
           await this.sleep(this.emptyQueueDelay);
@@ -127,9 +139,7 @@ class CrawlerWorker {
   getStats() {
     return {
       ...this.stats,
-      uptime:
-        Date.now() -
-        this.stats.startedAt.getTime(),
+      uptime: Date.now() - this.stats.startedAt.getTime(),
     };
   }
 }

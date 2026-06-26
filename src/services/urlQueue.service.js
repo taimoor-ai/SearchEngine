@@ -1,11 +1,16 @@
 // services/urlQueue.service.js
 
 import UrlQueue from "../models/UrlQueue.js";
-
+import { normalizeUrl } from "../utils/urlNormalizer.js";
 class UrlQueueService {
   async add(url, discoveredFrom = null, depth = 0) {
-    const domain = new URL(url).hostname.toLowerCase();
+    url = normalizeUrl(url);
 
+    if (!url) {
+      return;
+    }
+
+    const domain = new URL(url).hostname.toLowerCase();
     await UrlQueue.updateOne(
       { url },
       {
@@ -19,7 +24,7 @@ class UrlQueueService {
       },
       {
         upsert: true,
-      }
+      },
     );
   }
 
@@ -48,7 +53,7 @@ class UrlQueueService {
           createdAt: 1,
         },
         returnDocument: "after",
-      }
+      },
     );
   }
 

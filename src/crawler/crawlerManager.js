@@ -1,7 +1,7 @@
 // crawler/crawlManager.js
 
 import Crawler from "./crawler.js";
-import pageService from "./page.service.js";
+import pageService from "../services/page.service.js";
 
 class CrawlManager {
   constructor() {

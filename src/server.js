@@ -8,17 +8,18 @@ import dotenv from "dotenv";
 
 import connectDb from "./database/db.js";
 import searchRoutes from "./routes/searchRoutes.js";
-import crawlManager from "./crawler/crawlerManager.js";
-import urlQueueService from "./crawler/urlQueue.service.js";
 
-// Load environment variables
+import urlQueueService from "./services/urlQueue.service.js";
+import crawlerWorker from "./crawler/crawlerWorker.js";
+
+// Load Environment Variables
 dotenv.config();
 
 const app = express();
 
-// ======================
+// =====================================
 // Middlewares
-// ======================
+// =====================================
 
 app.use(helmet());
 app.use(cors());
@@ -28,9 +29,9 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// ======================
+// =====================================
 // Routes
-// ======================
+// =====================================
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -41,9 +42,9 @@ app.get("/", (req, res) => {
 
 app.use("/api", searchRoutes);
 
-// ======================
+// =====================================
 // 404 Handler
-// ======================
+// =====================================
 
 app.use((req, res) => {
   res.status(404).json({
@@ -52,12 +53,12 @@ app.use((req, res) => {
   });
 });
 
-// ======================
+// =====================================
 // Global Error Handler
-// ======================
+// =====================================
 
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
+  console.error(err);
 
   res.status(500).json({
     success: false,
@@ -65,49 +66,79 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ======================
+// =====================================
 // Start Server
-// ======================
+// =====================================
 
 const PORT = process.env.PORT || 3000;
 
+let server;
+
 const startServer = async () => {
   try {
-    // Connect Database
+    // Connect MongoDB
     await connectDb();
 
-    // Seed URL Queue
-    await urlQueueService.add("https://react.dev");
+    console.log("✅ MongoDB Connected");
 
-    // Start crawler (optional)
-    // await crawlManager.start();
+    // ---------------------------------
+    // Seed URLs
+    // ---------------------------------
 
-    const server = app.listen(PORT, () => {
+    const seedUrls = [
+      "https://react.dev",
+      // "https://nodejs.org",
+      // "https://expressjs.com"
+    ];
+
+    for (const url of seedUrls) {
+      await urlQueueService.add(url);
+    }
+
+    console.log(`✅ ${seedUrls.length} seed URL(s) added.`);
+
+    // ---------------------------------
+    // Start Express
+    // ---------------------------------
+
+    server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
 
-    // Graceful Shutdown
-    process.on("SIGTERM", () => {
-      console.log("SIGTERM received. Shutting down...");
+    // ---------------------------------
+    // Start Worker
+    // ---------------------------------
 
-      server.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    });
+    crawlerWorker.start();
 
-    process.on("SIGINT", () => {
-      console.log("SIGINT received. Shutting down...");
+    console.log("✅ Crawler Worker Started");
 
-      server.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("Server startup failed");
+    console.error(error);
+
     process.exit(1);
   }
 };
 
 startServer();
+
+// =====================================
+// Graceful Shutdown
+// =====================================
+
+const shutdown = async (signal) => {
+  console.log(`\n${signal} received...`);
+
+  crawlerWorker.stop();
+
+  server.close(() => {
+    console.log("Express Server Closed");
+
+    process.exit(0);
+  });
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));

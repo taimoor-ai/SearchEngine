@@ -7,7 +7,7 @@ const searchRoutes = require("./routes/searchRoutes");
 const connectDb= require("./database/db")
 const app = express();
 const dotenv = require("dotenv");
-
+const crawlManager = require("./crawler/crawlerManager");
 // Load environment variables from .env file
 dotenv.config();
 
@@ -26,6 +26,10 @@ app.use(express.json());
 
 // Connect to MongoDB
 connectDb(); 
+
+//start crawler
+crawlManager.start();
+
 // Logger
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
@@ -57,7 +61,7 @@ app.use((req, res) => {
     message: "Route not found",
   });
 });
-
+   
 
 // ======================
 // Global Error Handler

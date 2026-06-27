@@ -42,20 +42,33 @@ class PageService {
 
       statusCode: page.statusCode,
       responseTime: page.responseTime,
-
+      canonicalUrl: page.canonicalUrl || page.url,
       crawlCount,
 
       lastCrawledAt: new Date(),
     };
 
+    const aliases = [page.url];
+
+    if (page.canonicalUrl && page.canonicalUrl !== page.url) {
+      aliases.push(page.canonicalUrl);
+    }
+
     return await Page.findOneAndUpdate(
       { url: page.url },
-      document,
+      {
+        $set: document,
+        $addToSet: {
+          aliases: {
+            $each: aliases,
+          },
+        },
+      },
       {
         upsert: true,
-        returnDocument: "after", // replaces new: true
+        returnDocument: "after",
         runValidators: true,
-      }
+      },
     );
   }
 }

@@ -78,7 +78,11 @@ class CrawlerWorker {
 
       this.log(`[MongoDB] Saved ${job.url}`);
       if (job.depth < this.maxDepth) {
-        await urlQueueService.addMany(page.links, page.url, job.depth + 1);
+        await urlQueueService.addMany(
+          page.links,
+          page.canonicalUrl || page.url,
+          job.depth + 1,
+        );
 
         this.log(`[Queue] Added ${page.links.length} new URLs`);
       }

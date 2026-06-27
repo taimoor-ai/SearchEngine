@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-
+import { normalizeUrl } from "../utils/urlNormalizer.js";
 class Crawler {
   constructor() {
     this.timeout = 10000;
@@ -73,7 +73,21 @@ class Crawler {
 
     return headings;
   }
+  extractCanonical($, baseUrl) {
+    const href = $('link[rel="canonical"]').attr("href");
 
+    if (!href) {
+      return null;
+    }
+
+    try {
+      const canonical = new URL(href, baseUrl).href;
+
+      return normalizeUrl(canonical);
+    } catch {
+      return null;
+    }
+  }
   async crawl(url) {
     console.log(`\nCrawling: ${url}\n`);
 
@@ -92,11 +106,10 @@ class Crawler {
 
     const title = this.cleanText($("title").first().text());
 
-    const description =
-      $('meta[name="description"]').attr("content") || "";
-
+    const description = $('meta[name="description"]').attr("content") || "";
+    const canonicalUrl = this.extractCanonical($, url);
     const content = this.cleanText(
-      $("main").length ? $("main").text() : $("body").text()
+      $("main").length ? $("main").text() : $("body").text(),
     );
 
     const headings = this.extractHeadings($);
@@ -110,6 +123,7 @@ class Crawler {
       headings,
       content,
       links,
+      canonicalUrl,
       statusCode,
       responseTime,
     };

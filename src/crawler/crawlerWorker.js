@@ -5,6 +5,7 @@ import pageService from "../services/page.service.js";
 import urlQueueService from "../services/urlQueue.service.js";
 import robotsService from "../services/robots.service.js ";
 import domainService from "../services/domain.service.js";
+import { shouldRetry } from "../utils/retryPolicy.js";
 class CrawlerWorker {
   constructor(options = {}) {
     this.crawler = new Crawler();
@@ -40,10 +41,9 @@ class CrawlerWorker {
       return false;
     }
 
-  
-     await domainService.initialize(job.url);
+    await domainService.initialize(job.url);
 
-const allowed = await domainService.canCrawl(job.url);
+    const allowed = await domainService.canCrawl(job.url);
     if (!allowed) {
       this.log(`[Robots] Blocked: ${job.url}`);
 
@@ -93,11 +93,28 @@ const allowed = await domainService.canCrawl(job.url);
       return true;
     } catch (error) {
       this.stats.processed++;
-      this.stats.failed++;
+      this.log(
+        `[RetryPolicy] ${job.url}
+Reason: ${error.code || error.response?.status}
+Retry: ${shouldRetry(error)}`,
+      );
+      if (shouldRetry(error)) {
+        const scheduled = await urlQueueService.retry(job._id, error.message);
 
-      this.log(`[Error] ${job.url}\n${error.message}`);
+        if (scheduled) {
+          this.log(`[Retry] ${job.url}`);
+        } else {
+          this.stats.failed++;
 
-      await urlQueueService.markFailed(job._id, error.message);
+          this.log(`[Failed] Max retries reached`);
+        }
+      } else {
+        await urlQueueService.markFailed(job._id, error.message);
+
+        this.stats.failed++;
+
+        this.log(`[Permanent Failure] ${job.url}`);
+      }
 
       return false;
     }

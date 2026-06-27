@@ -2,6 +2,7 @@
 
 import UrlQueue from "../models/UrlQueue.js";
 import { normalizeUrl } from "../utils/urlNormalizer.js";
+import { getBackoffDelay } from "../utils/backoff.js";
 class UrlQueueService {
   async add(url, discoveredFrom = null, depth = 0) {
     url = normalizeUrl(url);
@@ -79,18 +80,14 @@ class UrlQueueService {
   async retry(id, error) {
     const job = await UrlQueue.findById(id);
 
-    if (!job) {
-      return false;
-    }
+    if (!job) return false;
 
-    // Max retries reached
     if (job.retries >= job.maxRetries) {
       await this.markFailed(id, error);
       return false;
     }
-    this.log(`[Retry] ${job.url} (${job.retries + 1}/${job.maxRetries})`);
-    // Fixed delay (we'll replace this with exponential backoff later)
-    const delay = 60 * 1000;
+
+    const delay = getBackoffDelay(job.retries);
 
     await UrlQueue.findByIdAndUpdate(id, {
       $set: {
@@ -104,6 +101,12 @@ class UrlQueueService {
         retries: 1,
       },
     });
+
+    console.log(
+      `[Retry] ${job.url}
+Retry ${job.retries + 1}/${job.maxRetries}
+Next attempt in ${Math.round(delay / 1000)} seconds`,
+    );
 
     return true;
   }

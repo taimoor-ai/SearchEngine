@@ -1,14 +1,7 @@
-import tokenizer from "../indexer/tokenizer.js";
-import stopWords from "../indexer/stopWords.js";
+import preprocessor from "../indexer/preprocessor.js";
 
 const text = `
-The React framework is used for building modern web applications.
+Running runners run while studying studies.
 `;
 
-const tokens = tokenizer.tokenize(text);
-
-console.log(tokens);
-
-const filtered = stopWords.remove(tokens);
-
-console.log(filtered);
+console.log(preprocessor.process(text));

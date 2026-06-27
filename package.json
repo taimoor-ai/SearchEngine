@@ -28,6 +28,7 @@
     "helmet": "^8.2.0",
     "mongoose": "^9.7.2",
     "morgan": "^1.11.0",
+    "natural": "^8.1.1",
     "robots-parser": "^3.0.1"
   }
 }

@@ -5,6 +5,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import indexWorker from "./indexer/indexWorker.js";
+
 
 import connectDb from "./database/db.js";
 import searchRoutes from "./routes/searchRoutes.js";
@@ -87,8 +89,8 @@ const startServer = async () => {
 
     const seedUrls = [
       "https://react.dev",
-      // "https://nodejs.org",
-      // "https://expressjs.com"
+      "https://nodejs.org",
+      "https://expressjs.com"
     ];
 
     for (const url of seedUrls) {
@@ -110,9 +112,11 @@ const startServer = async () => {
     // ---------------------------------
 
     crawlerWorker.start();
-
     console.log("✅ Crawler Worker Started");
+    indexWorker.start();
+    console.log("✅ Index Worker Started");
 
+    
   } catch (error) {
     console.error("Server startup failed");
     console.error(error);

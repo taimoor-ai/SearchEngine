@@ -4,6 +4,7 @@ import Crawler from "./crawler.js";
 import pageService from "../services/page.service.js";
 import urlQueueService from "../services/urlQueue.service.js";
 import robotsService from "../services/robots.service.js ";
+import domainService from "../services/domain.service.js";
 class CrawlerWorker {
   constructor(options = {}) {
     this.crawler = new Crawler();
@@ -39,8 +40,10 @@ class CrawlerWorker {
       return false;
     }
 
-    const allowed = await robotsService.isAllowed(job.url);
+  
+     await domainService.initialize(job.url);
 
+const allowed = await domainService.canCrawl(job.url);
     if (!allowed) {
       this.log(`[Robots] Blocked: ${job.url}`);
 
@@ -52,16 +55,16 @@ class CrawlerWorker {
       return true;
     }
     // Get crawl delay
-    const crawlDelay = await robotsService.getCrawlDelay(job.url);
+    // const crawlDelay = await robotsService.getCrawlDelay(job.url);
 
-    if (crawlDelay > 0) {
-      this.log(
-        `[Robots] Waiting ${crawlDelay} second(s) before crawling ${job.url}`,
-      );
+    // if (crawlDelay > 0) {
+    //   this.log(
+    //     `[Robots] Waiting ${crawlDelay} second(s) before crawling ${job.url}`,
+    //   );
 
-      await this.sleep(crawlDelay * 1000);
-    }
-
+    //   await this.sleep(crawlDelay * 1000);
+    // }
+    await domainService.waitIfNeeded(job.url);
     this.log(`Processing ${job.url}`);
 
     try {

@@ -82,8 +82,7 @@ htmlcov/
 *.pkl
 *.pickle
 *.h5
-*.model
-models/
+
 
 # =========================
 # Uploaded files

@@ -1,4 +1,6 @@
-import Page from "../models/page.js";
+// indexer/indexWorker.js
+
+import Page from "../models/Page.js";
 import indexService from "./index.service.js";
 
 class IndexWorker {
@@ -8,12 +10,15 @@ class IndexWorker {
   }
 
   log(message) {
-    console.log(`[Indexer] ${message}`);
+    console.log(`[IndexWorker] ${message}`);
   }
 
   async processNextPage() {
+    // Get next page waiting for indexing
     const page = await Page.findOne({
       isIndexed: false,
+    }).sort({
+      updatedAt: 1,
     });
 
     if (!page) {
@@ -23,18 +28,47 @@ class IndexWorker {
     this.log(`Indexing ${page.url}`);
 
     try {
-      await indexService.indexPage(page);
+      // Skip unchanged pages
+      if (page.isIndexed && !page.contentChanged) {
+        this.log(`Skipping ${page.url} (unchanged)`);
+        return false;
+      }
+
+      // Index the page
+      const result = await indexService.indexPage(page);
+
+      if (!result.indexed) {
+        this.log(`No tokens found in ${page.url}`);
+
+        page.isIndexed = true;
+        page.indexedAt = new Date();
+
+        await page.save();
+
+        return true;
+      }
+
+      // Update page metadata
+      page.documentLength = result.documentLength;
+      page.uniqueTerms = result.uniqueTerms;
 
       page.isIndexed = true;
+      page.contentChanged = false;
       page.indexedAt = new Date();
 
       await page.save();
 
-      this.log(`[Indexing] :--Completed ${page.url}`);
+      this.log(
+        `Indexed ${page.url}
+Terms: ${result.uniqueTerms}
+Words: ${result.documentLength}`
+      );
 
       return true;
     } catch (error) {
       console.error(error);
+
+      this.log(`Failed: ${page.url}`);
 
       return false;
     }
@@ -47,10 +81,11 @@ class IndexWorker {
 
     this.running = true;
 
-    this.log("Started");
+    this.log("Worker started.");
 
     while (this.running) {
-      const processed = await this.processNextPage();
+      const processed =
+        await this.processNextPage();
 
       if (!processed) {
         await new Promise((resolve) =>
@@ -62,6 +97,8 @@ class IndexWorker {
 
   stop() {
     this.running = false;
+
+    this.log("Worker stopped.");
   }
 }
 

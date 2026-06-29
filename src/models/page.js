@@ -210,6 +210,16 @@ const PageSchema = new mongoose.Schema(
       default: 0,
     },
 
+    documentLength: {
+      type: Number,
+      default: 0,
+    },
+
+    uniqueTerms: {
+      type: Number,
+      default: 0,
+    },
+
     indexedAt: {
       type: Date,
       default: null,
@@ -336,8 +346,6 @@ PageSchema.pre("save", function () {
   this.incomingLinksCount = this.incomingLinks?.length || 0;
 });
 
-const Page =
-  mongoose.models.Page ||
-  mongoose.model("Page", PageSchema);
+const Page = mongoose.models.Page || mongoose.model("Page", PageSchema);
 
 export default Page;

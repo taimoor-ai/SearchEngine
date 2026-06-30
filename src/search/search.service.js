@@ -2,7 +2,7 @@
 
 import InvertedIndex from "../models/InvertedIndex.js";
 import Page from "../models/Page.js";
-
+import boostService from "./boost/boost.service.js";
 import queryProcessor from "./queryProcessor.js";
 import rankingService from "./ranking.service.js";
 
@@ -50,8 +50,7 @@ class SearchService {
 
         candidates.get(pageId).postings.push({
           frequency: posting.frequency,
-          documentFrequency:
-            termDoc.documentFrequency,
+          documentFrequency: termDoc.documentFrequency,
         });
       }
     }
@@ -88,29 +87,25 @@ class SearchService {
 
     const totalLength = pages.reduce(
       (sum, page) => sum + page.documentLength,
-      0
+      0,
     );
 
-    const averageDocumentLength =
-      totalLength / pages.length;
+    const averageDocumentLength = totalLength / pages.length;
 
     //---------------------------------------------------
     // Total indexed documents
     //---------------------------------------------------
 
-    const totalDocuments =
-      await Page.countDocuments({
-        isIndexed: true,
-      });
+    const totalDocuments = await Page.countDocuments({
+      isIndexed: true,
+    });
 
     //---------------------------------------------------
     // Calculate BM25 score
     //---------------------------------------------------
 
     for (const candidate of candidates.values()) {
-      const page = pageMap.get(
-        candidate.pageId
-      );
+      const page = pageMap.get(candidate.pageId);
 
       if (!page) continue;
 
@@ -121,22 +116,20 @@ class SearchService {
           tf: posting.frequency,
           df: posting.documentFrequency,
           totalDocuments,
-          documentLength:
-            page.documentLength,
+          documentLength: page.documentLength,
           averageDocumentLength,
         });
       }
+      const boost = boostService.calculate(page, terms);
 
-      candidate.score = score;
+      candidate.score = score + boost;
     }
 
     //---------------------------------------------------
     // Sort
     //---------------------------------------------------
 
-    const sorted = [...candidates.values()].sort(
-      (a, b) => b.score - a.score
-    );
+    const sorted = [...candidates.values()].sort((a, b) => b.score - a.score);
 
     //---------------------------------------------------
     // Build Results
@@ -145,9 +138,7 @@ class SearchService {
     const results = [];
 
     for (const candidate of sorted) {
-      const page = pageMap.get(
-        candidate.pageId
-      );
+      const page = pageMap.get(candidate.pageId);
 
       if (!page) continue;
 
@@ -155,9 +146,7 @@ class SearchService {
         title: page.title,
         url: page.url,
         description: page.description,
-        score: Number(
-          candidate.score.toFixed(4)
-        ),
+        score: Number(candidate.score.toFixed(4)),
       });
     }
 

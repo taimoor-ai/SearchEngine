@@ -5,27 +5,31 @@ import Page from "../models/Page.js";
 import boostService from "./boost/boost.service.js";
 import queryProcessor from "./queryProcessor.js";
 import rankingService from "./ranking.service.js";
-
+import snippetService from "./snippet.service.js";
+import phraseService from "./phrase.service.js";
 class SearchService {
   async search(query) {
     //---------------------------------------------------
     // Process Query
     //---------------------------------------------------
 
-    const terms = queryProcessor.process(query);
+    const { terms, phrases } = queryProcessor.parse(query);
 
-    if (!terms.length) {
+    if (!terms.length && !phrases.length) {
       return [];
     }
 
     //---------------------------------------------------
     // Load matching terms from inverted index
     //---------------------------------------------------
+    const phraseTerms = phrases.flat();
 
+    const allTerms = [...new Set([...terms, ...phraseTerms])];
     const indexDocs = await InvertedIndex.find({
-      term: { $in: terms },
+      term: {
+        $in: allTerms,
+      },
     });
-
     if (!indexDocs.length) {
       return [];
     }
@@ -49,8 +53,13 @@ class SearchService {
         }
 
         candidates.get(pageId).postings.push({
+          term: termDoc.term,
+
           frequency: posting.frequency,
+
           documentFrequency: termDoc.documentFrequency,
+
+          positions: posting.positions,
         });
       }
     }
@@ -123,13 +132,34 @@ class SearchService {
       const boost = boostService.calculate(page, terms);
 
       candidate.score = score + boost;
+      if (phrases.length) {
+  let phraseMatched = false;
+
+  for (const phrase of phrases) {
+    if (
+      phraseService.matches(
+        candidate.postings,
+        phrase
+      )
+    ) {
+      phraseMatched = true;
+      candidate.score += 100;
+    }
+  }
+
+  if (!phraseMatched) {
+    candidate.score = 0;
+  }
+}
     }
 
     //---------------------------------------------------
     // Sort
     //---------------------------------------------------
 
-    const sorted = [...candidates.values()].sort((a, b) => b.score - a.score);
+   const sorted = filtered.sort(
+  (a, b) => b.score - a.score
+);
 
     //---------------------------------------------------
     // Build Results
@@ -146,6 +176,9 @@ class SearchService {
         title: page.title,
         url: page.url,
         description: page.description,
+
+        snippet: snippetService.generate(page.content, terms),
+
         score: Number(candidate.score.toFixed(4)),
       });
     }

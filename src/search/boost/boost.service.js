@@ -1,9 +1,16 @@
 // search/boost/boost.service.js
-
+import queryProcessor from "../queryProcessor.js";
 class BoostService {
   /**
    * Calculate all ranking boosts.
    */
+  tokenize(text = "") {
+    return queryProcessor.process(text);
+  }
+
+  containsTerm(tokens, term) {
+    return tokens.includes(term);
+  }
   calculate(page, queryTerms) {
     let score = 0;
 
@@ -13,15 +20,9 @@ class BoostService {
 
     score += this.urlBoost(page, queryTerms);
 
-    score += this.descriptionBoost(
-      page,
-      queryTerms
-    );
+    score += this.descriptionBoost(page, queryTerms);
 
-    score += this.exactMatchBoost(
-      page,
-      queryTerms
-    );
+    score += this.exactMatchBoost(page, queryTerms);
 
     return score;
   }
@@ -31,15 +32,12 @@ class BoostService {
   //----------------------------------------
 
   titleBoost(page, terms) {
-    if (!page.title) return 0;
-
-    const title =
-      page.title.toLowerCase();
+    const tokens = this.tokenize(page.title);
 
     let score = 0;
 
     for (const term of terms) {
-      if (title.includes(term)) {
+      if (this.containsTerm(tokens, term)) {
         score += 20;
       }
     }
@@ -52,15 +50,12 @@ class BoostService {
   //----------------------------------------
 
   headingBoost(page, terms) {
-    if (!page.headings?.length) return 0;
-
-    const headings =
-      page.headings.join(" ").toLowerCase();
+    const tokens = this.tokenize(page.headings.join(" "));
 
     let score = 0;
 
     for (const term of terms) {
-      if (headings.includes(term)) {
+      if (this.containsTerm(tokens, term)) {
         score += 15;
       }
     }
@@ -73,15 +68,14 @@ class BoostService {
   //----------------------------------------
 
   urlBoost(page, terms) {
-    if (!page.url) return 0;
+    const pathname = new URL(page.url).pathname.toLowerCase();
 
-    const url =
-      page.url.toLowerCase();
+    const tokens = pathname.split(/[\/\-_]+/).filter(Boolean);
 
     let score = 0;
 
     for (const term of terms) {
-      if (url.includes(term)) {
+      if (tokens.includes(term)) {
         score += 10;
       }
     }
@@ -94,17 +88,12 @@ class BoostService {
   //----------------------------------------
 
   descriptionBoost(page, terms) {
-    if (!page.description) return 0;
-
-    const description =
-      page.description.toLowerCase();
+    const tokens = this.tokenize(page.description);
 
     let score = 0;
 
     for (const term of terms) {
-      if (
-        description.includes(term)
-      ) {
+      if (this.containsTerm(tokens, term)) {
         score += 5;
       }
     }
@@ -119,8 +108,7 @@ class BoostService {
   exactMatchBoost(page, terms) {
     if (!terms.length) return 0;
 
-    const query =
-      terms.join(" ");
+    const query = terms.join(" ");
 
     const text = [
       page.title,
@@ -132,9 +120,11 @@ class BoostService {
       .join(" ")
       .toLowerCase();
 
-    return text.includes(query)
-      ? 40
-      : 0;
+    const tokens = this.tokenize(text);
+
+    const phrase = terms.join(" ");
+
+    return tokens.join(" ").includes(phrase) ? 40 : 0;
   }
 }
 
